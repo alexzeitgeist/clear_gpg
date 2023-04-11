@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -12,6 +13,27 @@ import (
 const dbusRule = "type='signal',interface='org.freedesktop.login1.Session',member='Lock'"
 
 func main() {
+	oneShot := flag.Bool("oneshot", false, "Run clearAll() once and exit")
+	flag.Parse()
+
+	if *oneShot {
+		runOneShot()
+		return
+	}
+
+	monitorDBus()
+}
+
+func runOneShot() {
+	err := clearAll()
+	if err != nil {
+		log.Fatal("Error clearing GPG agent:", err)
+	} else {
+		log.Println("Successfully cleared keys in the gpg-agent")
+	}
+}
+
+func monitorDBus() {
 	conn, err := dbus.SystemBus()
 	if err != nil {
 		log.Fatal("Error connecting to system bus:", err)
