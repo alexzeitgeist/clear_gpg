@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 
-	dbus "github.com/godbus/dbus/v5"
+	"github.com/godbus/dbus/v5"
 )
 
 func main() {
@@ -38,7 +38,12 @@ func clearAll() error {
 	if err != nil {
 		return fmt.Errorf("failed to open /dev/null: %w", err)
 	}
-	defer devNull.Close()
+	defer func() {
+		closeErr := devNull.Close()
+		if err == nil && closeErr != nil {
+			err = fmt.Errorf("failed to close /dev/null: %w", closeErr)
+		}
+	}()
 
 	commands := []struct {
 		name   string
