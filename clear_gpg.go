@@ -15,17 +15,17 @@ func main() {
 		return
 	}
 
-	matchRule := "type='signal',interface='org.freedesktop.login1.Session',member='Lock'"
-	if err = conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, matchRule).Err; err != nil {
+	rule := "type='signal',interface='org.freedesktop.login1.Session',member='Lock'"
+	if err = conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, rule).Err; err != nil {
 		fmt.Println("Error adding D-Bus match:", err)
 		return
 	}
 
-	signals := make(chan *dbus.Signal, 10)
-	conn.Signal(signals)
+	ch := make(chan *dbus.Signal, 10)
+	conn.Signal(ch)
 
-	for signal := range signals {
-		if signal.Name == "org.freedesktop.login1.Session.Lock" {
+	for sig := range ch {
+		if sig.Name == "org.freedesktop.login1.Session.Lock" {
 			if err = clearAll(); err != nil {
 				fmt.Println("Error clearing GPG agent:", err)
 			}
@@ -33,31 +33,31 @@ func main() {
 	}
 }
 
-func clearAll() error {
-	devNull, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0)
+func clearAll() (err error) {
+	null, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0)
 	if err != nil {
 		return fmt.Errorf("failed to open /dev/null: %w", err)
 	}
 	defer func() {
-		closeErr := devNull.Close()
+		closeErr := null.Close()
 		if err == nil && closeErr != nil {
 			err = fmt.Errorf("failed to close /dev/null: %w", closeErr)
 		}
 	}()
 
-	commands := []struct {
+	cmds := []struct {
 		name   string
 		args   []string
 		stdout *os.File
 	}{
-		{"gpg-connect-agent", []string{"SCD RESET", "/bye"}, devNull},
-		{"gpg-connect-agent", []string{"reloadagent", "/bye"}, devNull},
-		{"pkill", []string{"-HUP", "gpg-agent"}, devNull},
+		{"gpg-connect-agent", []string{"SCD RESET", "/bye"}, null},
+		{"gpg-connect-agent", []string{"reloadagent", "/bye"}, null},
+		{"pkill", []string{"-HUP", "gpg-agent"}, null},
 	}
 
-	for _, cmd := range commands {
-		if err = runCommand(cmd.name, cmd.args, cmd.stdout); err != nil {
-			return fmt.Errorf("error running %s: %w", cmd.name, err)
+	for _, c := range cmds {
+		if err = runCommand(c.name, c.args, c.stdout); err != nil {
+			return fmt.Errorf("error running %s: %w", c.name, err)
 		}
 	}
 	return nil
