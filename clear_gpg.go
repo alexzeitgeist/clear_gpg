@@ -16,9 +16,8 @@ func main() {
 	}
 
 	matchRule := "type='signal',interface='org.freedesktop.login1.Session',member='Lock'"
-	call := conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, matchRule)
-	if call.Err != nil {
-		fmt.Println("Error adding D-Bus match:", call.Err)
+	if err = conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, matchRule).Err; err != nil {
+		fmt.Println("Error adding D-Bus match:", err)
 		return
 	}
 
@@ -27,19 +26,14 @@ func main() {
 
 	for signal := range signals {
 		if signal.Name == "org.freedesktop.login1.Session.Lock" {
-			err := clearAll()
-			if err != nil {
-				fmt.Println("Error clearing GPG agent and SSH keys:", err)
+			if err = clearAll(); err != nil {
+				fmt.Println("Error clearing GPG agent:", err)
 			}
 		}
 	}
 }
 
 func clearAll() error {
-	return resetGPGAgent()
-}
-
-func resetGPGAgent() error {
 	devNull, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0)
 	if err != nil {
 		return fmt.Errorf("failed to open /dev/null: %w", err)
@@ -57,8 +51,7 @@ func resetGPGAgent() error {
 	}
 
 	for _, cmd := range commands {
-		err := runCommand(cmd.name, cmd.args, cmd.stdout)
-		if err != nil {
+		if err = runCommand(cmd.name, cmd.args, cmd.stdout); err != nil {
 			return fmt.Errorf("error running %s: %w", cmd.name, err)
 		}
 	}
