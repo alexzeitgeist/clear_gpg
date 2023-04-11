@@ -28,6 +28,8 @@ func main() {
 		if sig.Name == "org.freedesktop.login1.Session.Lock" {
 			if err = clearAll(); err != nil {
 				log.Println("Error clearing GPG agent:", err)
+			} else {
+				log.Println("Successfully cleared keys in the gpg-agent")
 			}
 		}
 	}
